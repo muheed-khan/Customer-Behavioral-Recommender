@@ -2,7 +2,7 @@ import random
 from pathlib import Path
 
 import pandas as pd
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 
 from recommender import Recommender
 
@@ -10,12 +10,15 @@ BASE_DIR = Path(__file__).resolve().parent
 PRODUCTS_FILE = BASE_DIR / "data" / "products.json"
 RATINGS_FILE = BASE_DIR / "data" / "final.csv"
 
+CATALOG_SIZE = 30   # products shown in the "click to test" grid
+NUM_SAMPLE_SHOPPERS = 20   # entries in the "simulate as shopper" dropdown
+N_RECOMMENDATIONS = 8
+
 app = Flask(__name__)
 
 df = None
-featured_products = None
-user_list = None
-selected_user = None
+catalog = None
+demo_shoppers = None
 recommender = None
 
 
@@ -34,8 +37,7 @@ def load_data():
 
     Product photos are served straight from their original Amazon CDN URL
     (`imageURLHighRes`) instead of shipping the ~800MB local image dump that
-    was used while building the dataset — this keeps the repo/container small
-    and deployable on free hosting tiers.
+    was used while building the dataset — keeps the repo/container small.
     """
     try:
         data = pd.read_json(PRODUCTS_FILE, lines=True)
@@ -53,107 +55,89 @@ def load_data():
         data["price"] = data["price"].apply(lambda x: x if pd.notnull(x) else random.randint(100, 500))
         data["asin"] = data["asin"].astype(str)
         data["product_id"] = data.index
+        data["name"] = data["predicted"].fillna("product").str.title()
         return data
     except Exception as e:
         print(f"Error loading product data: {e}")
         return pd.DataFrame()
 
 
-def load_users():
+def load_demo_shoppers(n=NUM_SAMPLE_SHOPPERS):
+    """Pick a small, fixed sample of real users for the 'simulate as shopper' demo.
+
+    The real dataset has ~25k user ids, which is unusable in a dropdown — this
+    gives a stable, friendly-labeled subset instead.
+    """
     try:
         data = pd.read_csv(RATINGS_FILE)
-        return sorted(data["user"].dropna().unique().tolist())
+        all_users = sorted(data["user"].dropna().unique().tolist())
+        sample = random.Random(42).sample(all_users, min(n, len(all_users)))
+        return [{"id": uid, "label": f"Sample Shopper {i + 1}"} for i, uid in enumerate(sample)]
     except Exception as e:
         print(f"Error loading users: {e}")
         return []
 
 
 def init_app():
-    global df, featured_products, user_list, recommender
+    global df, catalog, demo_shoppers, recommender
 
     recommender = Recommender(str(RATINGS_FILE))
     recommender.train_model()
 
     df = load_data()
-    user_list = load_users()
-    featured_products = df.sample(n=min(12, len(df))) if len(df) else df
+    demo_shoppers = load_demo_shoppers()
+    catalog = df.sample(n=min(CATALOG_SIZE, len(df)), random_state=42) if len(df) else df
 
 
 init_app()
 
 
+def recommend_from_product(product):
+    """'Because you viewed this' — recommend based on a single clicked item,
+    without needing a known user (the model treats it as a cold-start session)."""
+    try:
+        asins = recommender.recommend("__demo_session__", n_rec=N_RECOMMENDATIONS, seq=[product["asin"]])
+        asins = asins["__demo_session__"]
+        return df[df["asin"].isin(asins)]
+    except Exception as e:
+        print(f"Error generating item-based recommendations: {e}")
+        return df.sample(min(N_RECOMMENDATIONS, len(df)))
+
+
+def recommend_for_user(user_id):
+    """Personalized picks for a real user, based on their purchase history."""
+    try:
+        asins = recommender.recommend(user_id, n_rec=N_RECOMMENDATIONS)[user_id]
+        return df[df["asin"].isin(asins)]
+    except Exception as e:
+        print(f"Error generating user-based recommendations: {e}")
+        return df.sample(min(N_RECOMMENDATIONS, len(df)))
+
+
 @app.route("/")
-def home():
+def index():
+    selected_product = None
+    selected_shopper = None
+    recommendations = None
+
+    user_id = request.args.get("user") or None
+    product_id = request.args.get("product", type=int)
+
+    if product_id is not None and (df["product_id"] == product_id).any():
+        selected_product = df[df["product_id"] == product_id].iloc[0].to_dict()
+        recommendations = recommend_from_product(selected_product).to_dict(orient="records")
+    elif user_id:
+        selected_shopper = next((s for s in demo_shoppers if s["id"] == user_id), None)
+        if selected_shopper:
+            recommendations = recommend_for_user(user_id).to_dict(orient="records")
+
     return render_template(
         "index.html",
-        products=featured_products.to_dict(orient="records"),
-        users=user_list,
-        selected_user=selected_user,
-    )
-
-
-@app.route("/shop/")
-@app.route("/shop/<int:page>")
-def shop(page=1):
-    products_per_page = 18
-    start_idx = (page - 1) * products_per_page
-    paginated_products = df.iloc[start_idx:start_idx + products_per_page]
-
-    total_pages = (len(df) + products_per_page - 1) // products_per_page
-    pagination = list(range(1, total_pages + 1)) if total_pages <= 7 else (
-        [1, "...", page - 1, page, page + 1, "...", total_pages] if 4 <= page <= total_pages - 3 else
-        ([1, 2, 3, 4, 5, "...", total_pages] if page < 4 else
-         [1, "...", total_pages - 4, total_pages - 3, total_pages - 2, total_pages - 1, total_pages])
-    )
-
-    return render_template(
-        "shop.html",
-        products=paginated_products.to_dict(orient="records"),
-        pagination=pagination,
-        current_page=page,
-        selected_user=selected_user,
-        users=user_list,
-    )
-
-
-@app.route("/recommendations/<string:user_id>")
-def recommendations(user_id):
-    global selected_user
-    selected_user = user_id
-
-    recommended_asins = recommender.recommend(selected_user)
-    recommended_products = df[df["asin"].isin(recommended_asins)].copy()
-
-    return render_template(
-        "recommendations.html",
-        recommended_products=recommended_products.to_dict(orient="records"),
-        users=user_list,
-        selected_user=selected_user,
-    )
-
-
-@app.route("/product/<int:product_id>")
-def product_detail(product_id):
-    product = df[df["product_id"] == product_id].iloc[0].to_dict()
-    recommended_products = df.sample(min(7, len(df))).to_dict(orient="records")
-
-    return render_template(
-        "details.html",
-        product=product,
-        recommendations=recommended_products,
-        selected_user=selected_user,
-        users=user_list,
-    )
-
-
-@app.route("/wishlist")
-def wishlist():
-    wishlist_items = df.sample(min(5, len(df)))
-    return render_template(
-        "wishlist.html",
-        wishlist_items=wishlist_items.to_dict(orient="records"),
-        selected_user=selected_user,
-        users=user_list,
+        catalog=catalog.to_dict(orient="records"),
+        shoppers=demo_shoppers,
+        selected_product=selected_product,
+        selected_shopper=selected_shopper,
+        recommendations=recommendations,
     )
 
 

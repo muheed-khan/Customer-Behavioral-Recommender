@@ -1,179 +1,219 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Recommendation Engine Tester</title>
+    <style>
+        :root {
+            --bg: #f4f6fb;
+            --card-bg: #ffffff;
+            --border: #e2e6ef;
+            --text: #1f2430;
+            --muted: #6b7280;
+            --accent: #4f46e5;
+            --accent-bg: #eef0ff;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+        .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 60px; }
 
-    <!--=============== Font-Awesome ===============-->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-        integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
-        crossorigin="anonymous" referrerpolicy="no-referrer" />
+        .hero {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px 28px;
+            margin-bottom: 20px;
+        }
+        .hero h1 { margin: 0 0 6px; font-size: 1.5rem; }
+        .hero p { margin: 0 0 12px; color: var(--muted); }
+        .hero ol { margin: 0; padding-left: 20px; color: var(--text); }
+        .hero li { margin-bottom: 4px; }
+        .hero li strong { color: var(--accent); }
 
-    <!--=============== SWIPER CSS ===============-->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.css" />
+        .shopper-picker {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .shopper-picker label { font-weight: 600; }
+        .shopper-picker select {
+            padding: 8px 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            font-size: 0.95rem;
+            min-width: 220px;
+        }
+        .shopper-picker .hint { color: var(--muted); font-size: 0.85rem; }
 
-    <!--=============== CSS ===============-->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+        .result-panel {
+            background: var(--accent-bg);
+            border: 1px solid #d7d9ff;
+            border-radius: 14px;
+            padding: 20px 24px;
+            margin-bottom: 24px;
+        }
+        .result-panel h2 { margin: 0 0 12px; font-size: 1.05rem; }
 
-    <title>Glitter Emporium - Home Page</title>
+        .selected-card {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            background: var(--card-bg);
+            border: 2px solid var(--accent);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 18px;
+        }
+        .selected-card img {
+            width: 72px; height: 72px; object-fit: cover; border-radius: 8px; flex-shrink: 0;
+            background: #f0f0f0;
+        }
+        .selected-card .name { font-weight: 700; font-size: 1.05rem; }
+        .selected-card .price { color: var(--muted); }
+
+        .clear-link {
+            display: inline-block;
+            margin-top: 12px;
+            font-size: 0.9rem;
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .clear-link:hover { text-decoration: underline; }
+
+        .section-title { font-size: 1.1rem; margin: 0 0 14px; }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 14px;
+        }
+        .card {
+            display: block;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px;
+            text-decoration: none;
+            color: var(--text);
+            transition: transform 0.08s ease, box-shadow 0.08s ease;
+        }
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(20, 20, 40, 0.08);
+            border-color: var(--accent);
+        }
+        .card.active { border-color: var(--accent); background: var(--accent-bg); }
+        .card img {
+            width: 100%; aspect-ratio: 1 / 1; object-fit: cover;
+            border-radius: 8px; background: #f0f0f0; margin-bottom: 8px;
+        }
+        .card .name {
+            font-size: 0.88rem; font-weight: 600; line-height: 1.25;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .card .price { font-size: 0.85rem; color: var(--muted); margin-top: 2px; }
+
+        .catalog { margin-top: 8px; }
+        .empty { color: var(--muted); font-style: italic; }
+    </style>
 </head>
-
 <body>
-    <!--=============== HEADER ===============-->
-    <header class="header">
-        <div class="header_top">
-            <div class="header_container container">
-                <div class="header_contact">
-                    <span>(+92) - 346 - 7502793</span>
-                    <span>Our Location</span>
-                </div>
+    <div class="wrap">
+        <header class="hero">
+            <h1>🧠 Recommendation Engine Tester</h1>
+            <p>
+                This is a demo of a deep-learning recommender (a "Caser" sequential model) trained
+                on real purchase histories. Use it to see what it recommends and judge how good those
+                recommendations are.
+            </p>
+            <ol>
+                <li><strong>Click any product</strong> in the grid below — the model recommends similar items based on that one click.</li>
+                <li><strong>Or pick a sample shopper</strong> from the dropdown — see what the model recommends for someone with real purchase history.</li>
+            </ol>
+        </header>
 
-                <p class="header_alert-news">
-                    Super Value Deals - Save more with Coupons
-                </p>
+        <form class="shopper-picker" method="get" action="/">
+            <label for="user">Simulate as shopper:</label>
+            <select name="user" id="user" onchange="this.form.submit()">
+                <option value="">— pick a sample shopper —</option>
+                {% for s in shoppers %}
+                <option value="{{ s.id }}" {% if selected_shopper and selected_shopper.id == s.id %}selected{% endif %}>{{ s.label }}</option>
+                {% endfor %}
+            </select>
+            <span class="hint">Resets the product click below — the two modes work independently.</span>
+        </form>
 
-                <!-- Dropdown for User Selection -->
-                <div class="header_top-action">
-                    <ul>
-                        <li style="position: relative;">
-                            <a href="#" class="dropdown-toggle">
-                                {{ selected_user if selected_user else 'Users' }} &dtrif;
-                            </a>
-                            <ul class="dropdown">
-                                {% for user in users %}
-                                <li>
-                                    <a href="{{ url_for('recommendations', user_id=user) }}">{{ user }}</a>
-                                </li>
-                                {% endfor %}
-                            </ul>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </div>
-
-        <!-- Navigation Bar -->
-        <nav class="nav container">
-            <a href="{{ url_for('home') }}" class="nav_logo">
-                <img src="{{ url_for('static', filename='img/logo1.png') }}" alt="Logo" class="nav_logo_img">
-            </a>
-
-            <div class="nav_menu" id="nav-menu">
-                <ul class="nav_list">
-                    <li class="nav_item">
-                        <a href="{{ url_for('home') }}" class="nav_link active-link">Home</a>
-                    </li>
-                    <li class="nav_item">
-                        <a href="{{ url_for('shop', page=1) }}" class="nav_link">Shop</a>
-                    </li>
-                    <li class="nav_item">
-                        <a href="#" class="nav_link">Recommendations</a>
-                    </li>
-                </ul>
-
-                <div class="header_search">
-                    <input type="text" placeholder="Search for items" class="form_input">
-                    <button class="search_btn">
-                        <img src="{{ url_for('static', filename='img/search.png') }}" alt="">
-                    </button>
+        {% if selected_product %}
+        <section class="result-panel">
+            <h2>You clicked:</h2>
+            <div class="selected-card">
+                <img src="{{ selected_product.image_filename }}" alt="{{ selected_product.name }}">
+                <div>
+                    <div class="name">{{ selected_product.name }}</div>
+                    <div class="price">${{ selected_product.price }}</div>
                 </div>
             </div>
-
-            <div class="header_user-actions">
-                <a href="{{ url_for('wishlist') }}" class="header_action-btn">
-                    <img src="{{ url_for('static', filename='img/icon-heart.svg') }}" alt="">
-                    <span class="count">1</span>
+            <h2>Because you viewed this, the model recommends:</h2>
+            {% if recommendations %}
+            <div class="grid">
+                {% for p in recommendations %}
+                <a class="card" href="/?product={{ p.product_id }}">
+                    <img src="{{ p.image_filename }}" alt="{{ p.name }}">
+                    <div class="name">{{ p.name }}</div>
+                    <div class="price">${{ p.price }}</div>
                 </a>
-                <a href="#" class="header_action-btn">
-                    <img src="{{ url_for('static', filename='img/icon-cart.svg') }}" alt="">
-                    <span class="count">1</span>
-                </a>
+                {% endfor %}
             </div>
-        </nav>
-    </header>
-
-    <!--=============== MAIN CONTENT ===============-->
-    <main class="main">
-        <!--=============== HERO SECTION ===============-->
-        <section class="home section-lg">
-            <div class="home_container container grid">
-                <div class="home_content">
-                    <span class="home_subtitle">Hot Promotions</span>
-                    <h1 class="home_title">Fashion Trending <span>Great Collection</span></h1>
-                    <p class="home_description">Save more with coupons & up to 20% off</p>
-                    <a href="{{ url_for('shop', page=1) }}" class="btn">Shop Now</a>
-                </div>
-                <img src="{{ url_for('static', filename='img/home-img.png') }}" alt="Home Image" class="home_img">
-            </div>
+            {% else %}
+            <p class="empty">No recommendations could be generated for this product.</p>
+            {% endif %}
+            <a class="clear-link" href="/">&larr; Clear selection</a>
         </section>
+        {% elif selected_shopper %}
+        <section class="result-panel">
+            <h2>Recommended for {{ selected_shopper.label }}, based on their past purchases:</h2>
+            {% if recommendations %}
+            <div class="grid">
+                {% for p in recommendations %}
+                <a class="card" href="/?product={{ p.product_id }}">
+                    <img src="{{ p.image_filename }}" alt="{{ p.name }}">
+                    <div class="name">{{ p.name }}</div>
+                    <div class="price">${{ p.price }}</div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="empty">No recommendations could be generated for this shopper.</p>
+            {% endif %}
+            <a class="clear-link" href="/">&larr; Clear selection</a>
+        </section>
+        {% endif %}
 
-        <!--=============== PRODUCTS SECTION ===============-->
-        <section class="products section container">
-            <h2 class="section_title">Our Products</h2>
-            <div class="products_container grid">
-                {% for product in products %}
-                <div class="product_item">
-                    <div class="product_banner">
-                        <a href="{{ url_for('product_detail', product_id=product['product_id']) }}"
-                            class="product_images">
-                            <img src="{{ product['image_filename'] }}" alt="Product Image" class="product_img">
-                        </a>
-                    </div>
-                    <div class="product_content">
-                        <span class="product_category">Category</span>
-                        <div class="product_price">
-                            ${{ product['price'] }}
-                        </div>
-                    </div>
-                </div>
+        <section class="catalog">
+            <h2 class="section-title">All products — click any to test the recommender</h2>
+            <div class="grid">
+                {% for p in catalog %}
+                <a class="card {% if selected_product and p.product_id == selected_product.product_id %}active{% endif %}"
+                   href="/?product={{ p.product_id }}">
+                    <img src="{{ p.image_filename }}" alt="{{ p.name }}">
+                    <div class="name">{{ p.name }}</div>
+                    <div class="price">${{ p.price }}</div>
+                </a>
                 {% endfor %}
             </div>
         </section>
-
-        <!--=============== NEWSLETTER SECTION ===============-->
-        <section class="newsletter section home_newsletter">
-            <div class="newsletter_container container grid">
-                <h3 class="newsletter_title flex">
-                    <img src="{{ url_for('static', filename='img/icon-email.svg') }}" alt="" class="newsletter_icon">
-                    Sign up to Newsletter
-                </h3>
-                <p class="newsletter_discription">...and receive $27 coupon for first shopping.</p>
-                <form action="#" class="newsletter_form">
-                    <input type="email" placeholder="Enter your email" class="newsletter_input" required>
-                    <button type="submit" class="newsletter_btn">Subscribe</button>
-                </form>
-            </div>
-        </section>
-    </main>
-
-    <!--=============== FOOTER ===============-->
-    <footer class="footer container">
-        <div class="footer_container grid">
-            <div class="footer_content">
-                <a href="{{ url_for('home') }}" class="footer_logo">
-                    <img src="{{ url_for('static', filename='img/logo1.png') }}" alt="" class="footer_logo-img">
-                </a>
-                <h4 class="footer_subtitle">Contact</h4>
-                <p class="footer_description"><span>Address:</span> 383 Wellington Road, Azam Basti</p>
-                <p class="footer_description"><span>Phone:</span> +92 346 7502793</p>
-            </div>
-            <div class="footer_content">
-                <h3 class="footer_title">Quick Links</h3>
-                <ul class="footer_links">
-                    <li><a href="#" class="footer_link">About Us</a></li>
-                    <li><a href="#" class="footer_link">Contact Us</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="footer_bottom">
-            <p class="copyright">&copy; 2023 Glitter Emporium. All rights reserved.</p>
-        </div>
-    </footer>
-
-    <!--=============== SWIPER JS ===============-->
-    <script src="https://cdn.jsdelivr.net/npm/swiper@10/swiper-bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    </div>
 </body>
-
 </html>

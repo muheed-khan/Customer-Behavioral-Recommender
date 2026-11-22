@@ -1,10 +1,17 @@
-# Product Recommender — Caser Sequential Recommendation Demo
+# Recommendation Engine Tester
 
-A Flask storefront ("Glitter Emporium") backed by a deep-learning sequential
-recommender (the **Caser** model, via [LibRecommender](https://github.com/massquantity/LibRecommender))
-trained on a real Amazon product-interactions dataset. Pick a user from the
-dropdown and the app generates personalized "Recommended for you" products
-using a model trained on that user's purchase/review history.
+A single-page Flask demo built to let you **try and judge** a deep-learning
+sequential recommender (the **Caser** model, via
+[LibRecommender](https://github.com/massquantity/LibRecommender)) trained on a
+real Amazon product-interactions dataset. No storefront, no login, no
+clutter — just two ways to test it:
+
+1. **Click any product** in the grid — the model recommends similar items
+   based on that single click (shown directly above the grid, with the
+   clicked product highlighted). Click a recommended product to chain into
+   its recommendations, and so on.
+2. **Pick a sample shopper** from the dropdown — see what the model
+   recommends for someone with real purchase history.
 
 > This project was originally developed and trained inside the **Spyder IDE**
 > (hence folders like `.spyder-py3` in earlier revisions). This repo is a
@@ -18,10 +25,14 @@ using a model trained on that user's purchase/review history.
 - `recommender.py` trains a **Caser** model (a CNN-based sequential
   recommender) on `data/final.csv` (user/item interactions + item metadata)
   using LibRecommender, with TensorFlow as the backend.
-- `app.py` is a small Flask app that trains the model once at startup, loads
-  the product catalog from `data/products.json`, and serves a shop page,
-  product details, a wishlist demo, and a `/recommendations/<user>` page
-  that calls the trained model.
+- `app.py` is a single-route Flask app (`/`) that trains the model once at
+  startup, loads the product catalog from `data/products.json`, and handles
+  two optional query params:
+  - `?product=<id>` — "because you viewed this" recommendations for one item
+    (works for any item, no known user required — a cold-start session).
+  - `?user=<id>` — personalized recommendations for one of a small, fixed
+    sample of real users from the dataset (shown with friendly labels like
+    "Sample Shopper 1" instead of raw Amazon reviewer ids).
 - Product photos are served directly from their original Amazon CDN URLs
   (already present in the dataset) instead of bundling a ~800MB local image
   cache, which keeps the repo small and deployable on free hosting tiers.
@@ -30,7 +41,7 @@ using a model trained on that user's purchase/review history.
 
 ```
 product-recommender/
-├── app.py                 # Flask routes
+├── app.py                 # Flask app (single route, see "How it works")
 ├── recommender.py          # Caser model training/inference wrapper
 ├── requirements.txt         # Pinned Python dependencies
 ├── Dockerfile               # Container build (used for most hosts)
@@ -38,9 +49,9 @@ product-recommender/
 ├── Procfile                  # For Render/Railway/Heroku-style platforms
 ├── data/
 │   ├── final.csv             # User-item interactions + item features (training data)
-│   └── products.json         # Product catalog shown in the storefront
-├── static/                   # CSS/JS/images for the storefront UI
-└── templates/                # Jinja2 HTML templates
+│   └── products.json         # Product catalog
+├── static/img/default.jpg    # Fallback image for products with no photo
+└── templates/index.html      # The entire UI (self-contained, no build step)
 ```
 
 ## Quickstart
@@ -95,29 +106,21 @@ matter what Spyder's current working directory is set to.
 
 ## Deploying it for free
 
-**Netlify will not work for this project.** Netlify only hosts static sites
-and small serverless functions — it cannot run a long-lived Python/Flask
-process with TensorFlow/PyTorch loaded in memory. Use one of these instead,
-all of which have a free tier and support Docker/Python web services:
+**Netlify will not work for this project** — it only hosts static sites and
+small serverless functions, not a long-lived Python/Flask process with
+TensorFlow/PyTorch loaded in memory.
 
-| Platform | Notes |
-|---|---|
-| [Render](https://render.com) | Easiest. "New Web Service" → connect your GitHub repo → it detects the `Dockerfile` automatically. Free tier spins down when idle (cold start retrains the model on next request). |
-| [Railway](https://railway.app) | Similar to Render, also builds straight from the `Dockerfile`. |
-| [Fly.io](https://fly.io) | `fly launch` in this folder, it picks up the `Dockerfile`. |
-| [Hugging Face Spaces](https://huggingface.co/spaces) | Choose "Docker" as the Space SDK and push this repo — good fit for ML demos. |
-
-General steps (Render example):
+Measured on this project: dependencies take ~2.8GB on disk, and the app uses
+~650–700MB RAM once the model is trained and serving. **Use
+[Hugging Face Spaces](https://huggingface.co/spaces)** (free CPU tier, 16GB
+RAM — plenty of headroom, and it's built for ML demos like this one):
 
 1. Push this folder to a GitHub repo (see below).
-2. On Render: **New** → **Web Service** → select the repo.
-3. Render detects the `Dockerfile` — leave build/start commands as default.
-4. Deploy. First build installs TensorFlow/PyTorch (~5–10 min); subsequent
-   deploys are faster thanks to layer caching.
-
-If a platform doesn't auto-detect Docker, use the `Procfile` instead (set the
-build command to `pip install -r requirements.txt` and the start command to
-the line in `Procfile`).
+2. Create a new Space at huggingface.co/spaces → SDK: **Docker** → link it to
+   your GitHub repo (or push directly to the Space's own git remote).
+3. It builds from the `Dockerfile` as-is — no extra config needed.
+4. First build installs TensorFlow/PyTorch (~5–10 min); the model trains
+   again on every cold start/restart since nothing is cached between boots.
 
 ## Pushing to GitHub
 

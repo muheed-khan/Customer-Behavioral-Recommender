@@ -4,6 +4,7 @@ Trains on import so the first request after startup already has a ready model.
 Training happens once per process (not per-request), which keeps the demo
 responsive while still reflecting the dataset each time the server starts.
 """
+import numpy as np
 import tensorflow as tf
 from libreco.algorithms import Caser
 from libreco.data import DatasetFeat
@@ -22,7 +23,12 @@ MODEL_CONFIG = {
     "task": "ranking",
     "loss_type": "focal",
     "embed_size": 16,
-    "n_epochs": 1,
+    # 1 epoch leaves the model undertrained enough that every user/item gets
+    # near-identical "most popular" recommendations (predictions dominated by
+    # item popularity bias rather than the learned embeddings). 10 epochs gets
+    # genuinely different recommendations per user/item at the cost of a
+    # longer startup (~70-90s instead of ~8s on a typical machine).
+    "n_epochs": 10,
     "lr": 3e-3,
     "lr_decay": False,
     "reg": None,
@@ -76,3 +82,30 @@ class Recommender:
         if self.model is None:
             raise ValueError("Model is not trained yet. Call `train_model()` first.")
         return self.model.recommend_user(user=user_id, n_rec=n_rec, seq=seq)
+
+    def similar_items(self, item_id, n_rec=7):
+        """"Customers who viewed this also viewed" — nearest neighbors of a single
+        item in the model's learned embedding space.
+
+        Caser's `recommend_user(seq=[item_id])` was tried for this first, but a
+        sequence of just one real item (padded out to `recent_num`) washes out
+        in its convolutional sequence encoder and collapses to near-identical
+        "most popular" results regardless of which item is passed in. Plain
+        cosine similarity between learned item embeddings does not have that
+        problem and actually varies per item.
+        """
+        if self.model is None:
+            raise ValueError("Model is not trained yet. Call `train_model()` first.")
+        item2id = self.data_info.item2id
+        if item_id not in item2id:
+            return []
+
+        item_embeds = self.model.item_embeds_np[: self.model.n_items]
+        inner_id = item2id[item_id]
+        target = item_embeds[inner_id]
+        norms = np.linalg.norm(item_embeds, axis=1) * np.linalg.norm(target) + 1e-8
+        similarities = item_embeds @ target / norms
+
+        ranked = np.argsort(-similarities)
+        top_ids = [i for i in ranked if i != inner_id][:n_rec]
+        return [self.data_info.id2item[i] for i in top_ids]

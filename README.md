@@ -65,8 +65,11 @@ Python setup needed.
 docker compose up --build
 ```
 
-Then open **http://localhost:8000**. First boot trains the model, which
-takes roughly 10–30 seconds depending on your machine.
+Then open **http://localhost:8000**. Every boot (re)trains the model, which
+takes roughly **1–2 minutes** depending on your machine — it needs that much
+training to give per-user/per-item recommendations instead of just the
+dataset's "most popular" items for everyone (see
+[Why 10 training epochs?](#why-10-training-epochs)).
 
 ### Option B — Local Python environment
 
@@ -119,8 +122,10 @@ RAM — plenty of headroom, and it's built for ML demos like this one):
 2. Create a new Space at huggingface.co/spaces → SDK: **Docker** → link it to
    your GitHub repo (or push directly to the Space's own git remote).
 3. It builds from the `Dockerfile` as-is — no extra config needed.
-4. First build installs TensorFlow/PyTorch (~5–10 min); the model trains
-   again on every cold start/restart since nothing is cached between boots.
+4. First build installs TensorFlow/PyTorch (~5–10 min); the model then
+   retrains from scratch on every cold start/restart (~1–2 min, see
+   [Why 10 training epochs?](#why-10-training-epochs)) since nothing is
+   cached between boots.
 
 ## Pushing to GitHub
 
@@ -150,6 +155,32 @@ pins a tested, compatible combination:
 
 Using different versions may work, but this is the combination that was
 actually installed and tested end-to-end for this repo.
+
+## Why 10 training epochs?
+
+Early versions of this project trained for only 1 epoch, which trains fast
+(~8s) but leaves the model's predictions dominated by each item's raw
+popularity rather than its learned embedding — the practical effect is that
+**every** product click and **every** sample shopper returned almost the
+exact same "top 8 most popular" items, which defeats the point of a
+recommendation demo. This was verified directly: at 1 epoch, 6 different
+real users' top-8 recommendations were nearly identical sets; at 10 epochs,
+they're all different.
+
+Two changes fixed it (both in `recommender.py`):
+
+- `MODEL_CONFIG["n_epochs"]` raised from 1 to 10, so the model actually
+  learns item/user-specific structure instead of just popularity.
+- The "because you viewed this" (single product click) recommendations now
+  come from `Recommender.similar_items()` — plain cosine similarity between
+  learned item embeddings — instead of asking Caser's sequence model to
+  recommend from a 1-item sequence. Caser is a convolutional *sequence*
+  model; a sequence of a single real item (padded out to `recent_num=10`)
+  gets washed out in its convolution/pooling and collapses to the same
+  popularity-driven result regardless of which item it is, even at 10+
+  epochs. Nearest-neighbor search over item embeddings doesn't have that
+  problem and is also the standard technique for "customers who viewed this
+  also viewed" recommendations.
 
 ## Troubleshooting
 

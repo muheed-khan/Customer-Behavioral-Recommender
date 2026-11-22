@@ -93,11 +93,10 @@ init_app()
 
 
 def recommend_from_product(product):
-    """'Because you viewed this' — recommend based on a single clicked item,
-    without needing a known user (the model treats it as a cold-start session)."""
+    """'Because you viewed this' — nearest neighbors of the clicked item in the
+    model's learned embedding space (see Recommender.similar_items)."""
     try:
-        asins = recommender.recommend("__demo_session__", n_rec=N_RECOMMENDATIONS, seq=[product["asin"]])
-        asins = asins["__demo_session__"]
+        asins = recommender.similar_items(product["asin"], n_rec=N_RECOMMENDATIONS)
         return df[df["asin"].isin(asins)]
     except Exception as e:
         print(f"Error generating item-based recommendations: {e}")

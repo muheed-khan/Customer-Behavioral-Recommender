@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!--=============== Font-Awesome ===============-->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <!--=============== Custom CSS ===============-->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+    <title>Wishlist - Glitter Emporium</title>
+</head>
+
+<body>
+    <!--=============== HEADER ===============-->
+    <header class="header">
+        <header class="header">
+    <div class="header_top">
+      <div class="header_container container">
+        <div class="header_contact">
+          <span>(+92) - 346 - 7502793</span>
+
+          <span>Our Location</span>
+        </div>
+
+        <p class="header_alert-news">
+          Super Value Deals - Sove more with Coupons
+        </p>
+<div class="header_top-action dropdown">
+  <ul>
+    <li>
+      <!-- Display selected user name -->
+      <a href="#">{{ selected_user if selected_user else "Users" }} &dtrif;</a>
+      <ul class="dropdown">
+        <!-- Render unique users dynamically -->
+        {% for user in users %}
+          <li><a href="{{ url_for('recommendations', user_id=user) }}">{{ user }}</a></li>
+
+        {% endfor %}
+      </ul>
+    </li>
+  </ul>
+</div>
+
+
+      </div>
+    </div>
+
+    </header>
+    <!-- Main -->
+  <main class="main">
+    <!-- Breadcrumb -->
+    <section class="breadcrumb">
+      <ul class="breadcrumb_list flex container">
+        <li><a href="{{ url_for('home') }}" class="breadcrumb_link">Home</a></li>
+        <li><span class="breadcrumb_link">></span></li>
+        <li><span class="breadcrumb_link">Wishlist</span></li>
+      </ul>
+    </section>
+
+    <!--=============== MAIN CONTENT ===============-->
+    <main class="main container">
+        <h2 class="section_title">Your Wishlist</h2>
+        <table class="wishlist_table">
+            <thead>
+                <tr>
+                    <th>Image</th>
+                    <th>Name</th>
+                    <th>Price</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in wishlist_items %}
+                <tr>
+                    <td>
+                        <img src="{{ item['image_filename'] }}" alt="Product" class="wishlist_image">
+                    </td>
+                    <td>{{ item['predicted'] }}</td>
+                    <td>${{ item['price'] if item['price'] else 0 }}</td>
+                    <td>
+                        <button class="wishlist_btn">Remove</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </main>
+
+    <!--=============== FOOTER ===============-->
+    <footer class="footer">
+        <p>&copy; 2023 Glitter Emporium. All rights reserved.</p>
+    </footer>
+
+    <!--=============== Custom JS ===============-->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+
+</html>
+    

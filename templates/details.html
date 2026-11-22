@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Details</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header_top">
+          <div class="header_container container">
+            <div class="header_contact">
+              <span>(+92) - 346 - 7502793</span>
+              <span>Our Location</span>
+            </div>
+            <p class="header_alert-news">
+              Super Value Deals - Save more with Coupons
+            </p>
+            <a href="login.html" class="header_top-action">Log In / Sign Up</a>
+          </div>
+        </div>
+    
+        <nav class="nav container">
+          <a href="{{ url_for('home') }}" class="nav_logo">
+            <img src="{{ url_for('static', filename='img/logo1.png') }}" alt="Logo" class="nav_logo_img">
+          </a>
+    
+          <div class="nav_menu" id="nav-menu">
+            <ul class="nav_list">
+              <li class="nav_item"><a href="{{ url_for('home') }}" class="nav_link active-link">Home</a></li>
+              <li class="nav_item"><a href="{{ url_for('shop', page=1) }}" class="nav_link">Shop</a></li>
+              <li class="nav_item"><a href="login.html" class="nav_link">Login</a></li>
+            </ul>
+          </div>
+        </nav>
+    </header>
+
+    <!-- Product Details Section -->
+    <section class="product_details container section-lg">
+        <div class="product_wrapper">
+            <!-- Main Product Image -->
+            <div class="product_image">
+                <img src="{{ product['image_filename'] or url_for('static', filename='img/default.jpg') }}" alt="Product Image" class="product_img">
+            </div>
+
+            <!-- Product Info -->
+            <div class="product_info">
+                <h2>{{ product['predicted'] }}</h2>
+                <p class="product_category">Category: Men Clothing</p>
+                <p class="product_price">${{ product['price'] }}</p>
+                <button class="btn btn-primary">Add to Cart</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recommendations Section -->
+    <section class="products container section-lg">
+        <h3>Recommended Products</h3>
+        <div class="products_container grid">
+            {% for rec in recommendations %}
+            <div class="recommended_product">
+                <img src="{{ rec['image_filename'] or url_for('static', filename='img/default.jpg') }}" alt="Recommended Product">
+                <p>{{ rec['predicted'] }}</p>
+                <p>${{ rec['price'] }}</p> <!-- Price is pre-processed in Python -->
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer container">
+        <div class="footer_container grid">
+            <div class="footer_content">
+                <a href="{{ url_for('home') }}" class="footer_logo">
+                    <img src="{{ url_for('static', filename='img/logo1.png') }}" alt="Logo" class="footer_logo-img">
+                </a>
+                <h4 class="footer_subtitle">Contact</h4>
+                <p class="footer_description"><span>Address:</span> 383 Wellington Road, Azam Basti </p>
+                <p class="footer_description"><span>Phone:</span> +92 346 7502793 / (+92) 01 2321 6754</p>
+                <p class="footer_description"><span>Hours:</span> 11:00 - 20:00, Mon - Sat</p>
+            </div>
+        </div>
+        <div class="footer_bottom">
+            <p class="copyright">&copy; 2023 GlitterEmporium. All rights reserved</p>
+            <span class="designer">Designed by TechCrafter</span>
+        </div>
+    </footer>
+</body>
+</html>

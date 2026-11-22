@@ -1,0 +1,14 @@
+# CPU-only PyTorch build (a few hundred MB instead of several GB with bundled CUDA)
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+flask==3.1.3
+gunicorn==27.0.1
+pandas==2.1.4
+numpy==1.26.4
+scipy==1.11.4
+scikit-learn==1.3.2
+tensorflow==2.15.1
+torch==2.1.2
+gensim==4.3.2
+tqdm
+LibRecommender==1.5.2

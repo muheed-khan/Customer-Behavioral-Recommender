@@ -107,37 +107,6 @@ All file paths in `app.py` are resolved relative to the script's own
 location (`Path(__file__).resolve().parent`), so it runs correctly no
 matter what Spyder's current working directory is set to.
 
-## Deploying it for free
-
-**Netlify will not work for this project** — it only hosts static sites and
-small serverless functions, not a long-lived Python/Flask process with
-TensorFlow/PyTorch loaded in memory.
-
-Measured on this project: dependencies take ~2.8GB on disk, and the app uses
-~650–700MB RAM once the model is trained and serving. **Use
-[Hugging Face Spaces](https://huggingface.co/spaces)** (free CPU tier, 16GB
-RAM — plenty of headroom, and it's built for ML demos like this one):
-
-1. Push this folder to a GitHub repo (see below).
-2. Create a new Space at huggingface.co/spaces → SDK: **Docker** → link it to
-   your GitHub repo (or push directly to the Space's own git remote).
-3. It builds from the `Dockerfile` as-is — no extra config needed.
-4. First build installs TensorFlow/PyTorch (~5–10 min); the model then
-   retrains from scratch on every cold start/restart (~1–2 min, see
-   [Why 10 training epochs?](#why-10-training-epochs)) since nothing is
-   cached between boots.
-
-## Pushing to GitHub
-
-```bash
-cd product-recommender
-git init
-git add .
-git commit -m "Initial commit: Caser-based product recommender demo"
-git branch -M main
-git remote add origin https://github.com/<your-username>/<your-repo>.git
-git push -u origin main
-```
 
 ## Why these exact versions?
 
